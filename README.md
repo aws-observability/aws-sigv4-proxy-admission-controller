@@ -1,4 +1,4 @@
-## My Project
+## AWS SIGv4 Proxy Admission Controller
 
 TODO: Fill this README out!
 
