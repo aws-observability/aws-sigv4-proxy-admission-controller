@@ -28,6 +28,7 @@ import (
 	corev1Types "k8s.io/client-go/kubernetes/typed/core/v1"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -162,9 +163,11 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 		sidecarArgs = append(sidecarArgs, "--role-arn", roleArn)
 	}
 
+	image := whsvr.getProxyImage()
+
 	sidecarContainer := []corev1.Container{{
 		Name: "sidecar-aws-sigv4-proxy",
-		Image: "public.ecr.aws/aws-observability/aws-sigv4-proxy:latest",
+		Image: image,
 		ImagePullPolicy: corev1.PullIfNotPresent, 
 		Ports: []corev1.ContainerPort{{
 			ContainerPort: 8005,
@@ -303,6 +306,16 @@ func (whsvr *WebhookServer) getRoleArn(podMetadata *metav1.ObjectMeta) string {
 	roleArn := annotations[signingProxyWebhookAnnotationRoleArnKey]
 
 	return roleArn
+}
+
+func (whsvr *WebhookServer) getProxyImage() string {
+	image := os.Getenv("AWS-SIGV4-PROXY-IMAGE")
+
+	if image == "" {
+		image = "public.ecr.aws/aws-observability/aws-sigv4-proxy:latest"
+	}
+
+	return image
 }
 
 func addContainers(target, containers []corev1.Container, basePath string) (patch []PatchOperation) {
