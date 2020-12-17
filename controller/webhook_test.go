@@ -298,6 +298,7 @@ func TestWebhookServer_getRoleArn(t *testing.T) {
 	var testCases = []struct {
 		name          string
 		podObjectMeta *metav1.ObjectMeta
+		labels        map[string]string
 		expected      string
 		errorMessage  string
 	} {
@@ -308,14 +309,27 @@ func TestWebhookServer_getRoleArn(t *testing.T) {
 					signingProxyWebhookAnnotationRoleArnKey: "arn:aws:iam::123456789:annotation/assume-role-test",
 				},
 			},
+			labels: map[string]string{},
 			expected: "arn:aws:iam::123456789:annotation/assume-role-test",
 			errorMessage: "Should return role-arn annotation value",
+		},
+		{
+			name: "TestSidecarRoleArnLabelPresent",
+			podObjectMeta: &metav1.ObjectMeta{
+				Annotations: map[string]string{},
+			},
+			labels: map[string]string{
+				signingProxyWebhookLabelRoleArnKey: "arn:aws:iam::123456789:label/assume-role-test",
+			},
+			expected: "arn:aws:iam::123456789:label/assume-role-test",
+			errorMessage: "Should return role-arn label value",
 		},
 		{
 			name: "TestSidecarNoRoleArnAnnotationPresent",
 			podObjectMeta: &metav1.ObjectMeta{
 				Annotations: map[string]string{},
 			},
+			labels: map[string]string{},
 			expected: "",
 			errorMessage: "Should return empty role-arn since there is no annotation",
 		},
@@ -328,7 +342,7 @@ func TestWebhookServer_getRoleArn(t *testing.T) {
 				namespaceClient: nil,
 			}
 
-			r := whsvr.getRoleArn(tc.podObjectMeta)
+			r := whsvr.getRoleArn(tc.labels, tc.podObjectMeta)
 			assert.Equal(t, tc.expected, r, tc.errorMessage)
 		})
 	}

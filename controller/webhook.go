@@ -33,15 +33,16 @@ import (
 )
 
 const (
-	signingProxyWebhookAnnotationHostKey   = "sidecar.aws.signing-proxy/host"
-	signingProxyWebhookAnnotationInjectKey = "sidecar.aws.signing-proxy/inject"
-	signingProxyWebhookAnnotationNameKey   = "sidecar.aws.signing-proxy/name"
-	signingProxyWebhookAnnotationRegionKey = "sidecar.aws.signing-proxy/region"
+	signingProxyWebhookAnnotationHostKey    = "sidecar.aws.signing-proxy/host"
+	signingProxyWebhookAnnotationInjectKey  = "sidecar.aws.signing-proxy/inject"
+	signingProxyWebhookAnnotationNameKey    = "sidecar.aws.signing-proxy/name"
+	signingProxyWebhookAnnotationRegionKey  = "sidecar.aws.signing-proxy/region"
 	signingProxyWebhookAnnotationRoleArnKey = "sidecar.aws.signing-proxy/role-arn"
-	signingProxyWebhookAnnotationStatusKey = "sidecar.aws.signing-proxy/status"
-	signingProxyWebhookLabelHostKey        = "sidecar-host"
-	signingProxyWebhookLabelNameKey        = "sidecar-name"
-	signingProxyWebhookLabelRegionKey      = "sidecar-region"
+	signingProxyWebhookAnnotationStatusKey  = "sidecar.aws.signing-proxy/status"
+	signingProxyWebhookLabelHostKey         = "sidecar-host"
+	signingProxyWebhookLabelNameKey         = "sidecar-name"
+	signingProxyWebhookLabelRegionKey       = "sidecar-region"
+	signingProxyWebhookLabelRoleArnKey      = "sidecar-role-arn"
 )
 
 var (
@@ -157,7 +158,7 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 
 	sidecarArgs := []string{"--name", name, "--region", region, "--host", host, "--port", ":8005"}
 
-	roleArn := whsvr.getRoleArn(&pod.ObjectMeta)
+	roleArn := whsvr.getRoleArn(nsLabels, &pod.ObjectMeta)
 
 	if roleArn != "" {
 		sidecarArgs = append(sidecarArgs, "--role-arn", roleArn)
@@ -296,7 +297,7 @@ func extractParameters(host string, name string, region string) (string, string,
 	return host, name, region
 }
 
-func (whsvr *WebhookServer) getRoleArn(podMetadata *metav1.ObjectMeta) string {
+func (whsvr *WebhookServer) getRoleArn(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) string {
 	annotations := podMetadata.GetAnnotations()
 
 	if annotations == nil {
@@ -304,6 +305,10 @@ func (whsvr *WebhookServer) getRoleArn(podMetadata *metav1.ObjectMeta) string {
 	}
 
 	roleArn := annotations[signingProxyWebhookAnnotationRoleArnKey]
+
+	if strings.TrimSpace(roleArn) == "" {
+		roleArn = nsLabels[signingProxyWebhookLabelRoleArnKey]
+	}
 
 	return roleArn
 }
