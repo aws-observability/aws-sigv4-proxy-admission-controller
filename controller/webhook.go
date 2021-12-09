@@ -357,7 +357,7 @@ func updateAnnotations(target map[string]string, annotations map[string]string) 
 		}
 		patch = append(patch, PatchOperation{
 			Op:    op,
-			Path:  "/metadata/annotations/" + key,
+			Path:  "/metadata/annotations/" + strings.ReplaceAll(key, "/", "~1"),
 			Value: value,
 		})
 	}
