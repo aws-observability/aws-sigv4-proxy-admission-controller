@@ -144,7 +144,7 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 
 	nsLabels, err := whsvr.describeNamespace(ctx, admissionRequest.Namespace)
 
-	if (err != nil) {
+	if err != nil {
 		return &v1beta1.AdmissionResponse{Result: &metav1.Status{Message: err.Error()}}, fmt.Errorf("Error describing namespace: %v", err)
 	}
 
@@ -167,9 +167,9 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 	image := whsvr.getProxyImage()
 
 	sidecarContainer := []corev1.Container{{
-		Name: "sidecar-aws-sigv4-proxy",
-		Image: image,
-		ImagePullPolicy: corev1.PullIfNotPresent, 
+		Name:            "sidecar-aws-sigv4-proxy",
+		Image:           image,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Ports: []corev1.ContainerPort{{
 			ContainerPort: 8005,
 		}},
@@ -182,8 +182,8 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 
 	patchOperations = append(patchOperations, updateAnnotations(pod.Annotations, annotations)...)
 
-	patchBytes, err := json.Marshal(patchOperations);
-	
+	patchBytes, err := json.Marshal(patchOperations)
+
 	if err != nil {
 		return &v1beta1.AdmissionResponse{Result: &metav1.Status{Message: err.Error()}}, fmt.Errorf("Error unmarshaling AdmissionRequest into Pod: %v", err)
 	}
@@ -221,11 +221,11 @@ func (whsvr *WebhookServer) shouldMutate(nsLabels map[string]string, podMetadata
 	}
 
 	if annotations[signingProxyWebhookAnnotationStatusKey] == "injected" {
-		return false;
+		return false
 	}
 
 	if annotations[signingProxyWebhookAnnotationHostKey] == "" && nsLabels[signingProxyWebhookLabelHostKey] == "" {
-		return false;
+		return false
 	}
 
 	var annotationInject bool
@@ -290,7 +290,7 @@ func extractParameters(host string, name string, region string) (string, string,
 
 	hostModified := host[strings.IndexByte(host, '.')+1:]
 
-	if (strings.TrimSpace(region) == "") {
+	if strings.TrimSpace(region) == "" {
 		region = hostModified[:strings.IndexByte(hostModified, '.')]
 	}
 
@@ -340,8 +340,8 @@ func addContainers(target, containers []corev1.Container, basePath string) (patc
 		}
 
 		patch = append(patch, PatchOperation{
-			Op: "add",
-			Path: path,
+			Op:    "add",
+			Path:  path,
 			Value: value,
 		})
 	}
@@ -351,24 +351,16 @@ func addContainers(target, containers []corev1.Container, basePath string) (patc
 
 func updateAnnotations(target map[string]string, annotations map[string]string) (patch []PatchOperation) {
 	for key, value := range annotations {
+		op := "replace"
 		if target == nil || target[key] == "" {
-			target = map[string]string{}
-
-			patch = append(patch, PatchOperation{
-				Op: "add",
-				Path: "/metadata/annotations",
-				Value: map[string]string{
-					key: value,
-				},
-			})
-		} else {
-			patch = append(patch, PatchOperation{
-				Op: "replace",
-				Path: "/metadata/annotations" + key,
-				Value: value,
-			})
+			op = "add"
 		}
+		patch = append(patch, PatchOperation{
+			Op:    op,
+			Path:  "/metadata/annotations/" + key,
+			Value: value,
+		})
 	}
 
-	return patch;
+	return patch
 }
