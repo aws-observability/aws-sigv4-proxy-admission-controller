@@ -20,29 +20,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/api/admission/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
-	corev1Types "k8s.io/client-go/kubernetes/typed/core/v1"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"k8s.io/api/admission/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
+	corev1Types "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
-	signingProxyWebhookAnnotationHostKey    = "sidecar.aws.signing-proxy/host"
-	signingProxyWebhookAnnotationInjectKey  = "sidecar.aws.signing-proxy/inject"
-	signingProxyWebhookAnnotationNameKey    = "sidecar.aws.signing-proxy/name"
-	signingProxyWebhookAnnotationRegionKey  = "sidecar.aws.signing-proxy/region"
-	signingProxyWebhookAnnotationRoleArnKey = "sidecar.aws.signing-proxy/role-arn"
-	signingProxyWebhookAnnotationStatusKey  = "sidecar.aws.signing-proxy/status"
-	signingProxyWebhookLabelHostKey         = "sidecar-host"
-	signingProxyWebhookLabelNameKey         = "sidecar-name"
-	signingProxyWebhookLabelRegionKey       = "sidecar-region"
-	signingProxyWebhookLabelRoleArnKey      = "sidecar-role-arn"
+	signingProxyWebhookAnnotationHostKey       = "sidecar.aws.signing-proxy/host"
+	signingProxyWebhookAnnotationInjectKey     = "sidecar.aws.signing-proxy/inject"
+	signingProxyWebhookAnnotationNameKey       = "sidecar.aws.signing-proxy/name"
+	signingProxyWebhookAnnotationRegionKey     = "sidecar.aws.signing-proxy/region"
+	signingProxyWebhookAnnotationRoleArnKey    = "sidecar.aws.signing-proxy/role-arn"
+	signingProxyWebhookAnnotationStatusKey     = "sidecar.aws.signing-proxy/status"
+	signingProxyWebhookAnnotationCPURequestKey = "sidecar.aws.signing-proxy/cpu"
+	signingProxyWebhookAnnotationCPULimitKey   = "sidecar.aws.signing-proxy/cpu-limit"
+	signingProxyWebhookAnnotationMemRequestKey = "sidecar.aws.signing-proxy/memory"
+	signingProxyWebhookAnnotationMemLimitKey   = "sidecar.aws.signing-proxy/memory-limit"
+	signingProxyWebhookLabelHostKey            = "sidecar-host"
+	signingProxyWebhookLabelNameKey            = "sidecar-name"
+	signingProxyWebhookLabelRegionKey          = "sidecar-region"
+	signingProxyWebhookLabelRoleArnKey         = "sidecar-role-arn"
 )
 
 var (
@@ -176,6 +182,16 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 		Args: sidecarArgs,
 	}}
 
+	resources, err := whsvr.getResourceRequirements(&pod.ObjectMeta)
+
+	if err != nil {
+		return &v1beta1.AdmissionResponse{Result: &metav1.Status{Message: err.Error()}}, fmt.Errorf("Error getting resources: %v", err)
+	}
+
+	if resources != nil {
+		sidecarContainer[0].Resources = *resources
+	}
+
 	patchOperations = append(patchOperations, addContainers(pod.Spec.Containers, sidecarContainer, "/spec/containers")...)
 
 	annotations := map[string]string{signingProxyWebhookAnnotationStatusKey: "injected"}
@@ -295,6 +311,68 @@ func extractParameters(host string, name string, region string) (string, string,
 	}
 
 	return host, name, region
+}
+
+func (whsvr *WebhookServer) getResourceRequirements(podMetadata *metav1.ObjectMeta) (*corev1.ResourceRequirements, error) {
+	annotations := podMetadata.GetAnnotations()
+
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+
+	cpuReq := annotations[signingProxyWebhookAnnotationCPURequestKey]
+	cpuLimit := annotations[signingProxyWebhookAnnotationCPULimitKey]
+	memReq := annotations[signingProxyWebhookAnnotationMemRequestKey]
+	memLimit := annotations[signingProxyWebhookAnnotationMemLimitKey]
+
+	if cpuReq == "" && cpuLimit == "" && memReq == "" && memLimit == "" {
+		return nil, nil
+	}
+
+	requests := map[corev1.ResourceName]resource.Quantity{}
+	limits := map[corev1.ResourceName]resource.Quantity{}
+
+	if cpuReq != "" {
+		quantity, err := resource.ParseQuantity(cpuReq)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing cpu requests: %v", err)
+		} else {
+			requests[corev1.ResourceCPU] = quantity
+		}
+	}
+	if memReq != "" {
+		quantity, err := resource.ParseQuantity(memReq)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing memory requests: %v", err)
+		} else {
+			requests[corev1.ResourceMemory] = quantity
+		}
+	}
+	if cpuLimit != "" {
+		quantity, err := resource.ParseQuantity(cpuLimit)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing cpu limit: %v", err)
+		} else {
+			limits[corev1.ResourceCPU] = quantity
+		}
+	}
+	if memLimit != "" {
+		quantity, err := resource.ParseQuantity(memLimit)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing memory limit: %v", err)
+		} else {
+			limits[corev1.ResourceMemory] = quantity
+		}
+	}
+	resource := &corev1.ResourceRequirements{}
+	if len(requests) > 0 {
+		resource.Requests = requests
+	}
+	if len(limits) > 0 {
+		resource.Limits = limits
+	}
+
+	return resource, nil
 }
 
 func (whsvr *WebhookServer) getRoleArn(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) string {

@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
@@ -344,6 +345,88 @@ func TestWebhookServer_getRoleArn(t *testing.T) {
 
 			r := whsvr.getRoleArn(tc.labels, tc.podObjectMeta)
 			assert.Equal(t, tc.expected, r, tc.errorMessage)
+		})
+	}
+}
+
+func TestWebhookServer_getResourceRequirements(t *testing.T) {
+	var testCases = []struct {
+		name          string
+		podObjectMeta *metav1.ObjectMeta
+		labels        map[string]string
+		expected      *corev1.ResourceRequirements
+		errorMessage  string
+	}{
+		{
+			name: "TestSidecarResourceAnnotationPresent",
+			podObjectMeta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					signingProxyWebhookAnnotationCPURequestKey: "200m",
+					signingProxyWebhookAnnotationMemRequestKey: "200Mi",
+					signingProxyWebhookAnnotationCPULimitKey:   "400m",
+					signingProxyWebhookAnnotationMemLimitKey:   "400Mi",
+				},
+			},
+			expected: &corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceCPU:    resource.MustParse("200m"),
+					corev1.ResourceMemory: resource.MustParse("200Mi"),
+				},
+				Limits: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceCPU:    resource.MustParse("400m"),
+					corev1.ResourceMemory: resource.MustParse("400Mi"),
+				},
+			},
+			errorMessage: "Should return ResourceRequiremts value",
+		},
+		{
+			name: "TestSidecarResourceAnnotationRequestsCPUPresent",
+			podObjectMeta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					signingProxyWebhookAnnotationCPURequestKey: "200m",
+				},
+			},
+			expected: &corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceCPU: resource.MustParse("200m"),
+				},
+			},
+			errorMessage: "Should return ResourceRequestsCPU only",
+		},
+		{
+			name: "TestSidecarResourceAnnotationLimitCPUPreset",
+			podObjectMeta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					signingProxyWebhookAnnotationCPULimitKey: "400m",
+				},
+			},
+			expected: &corev1.ResourceRequirements{
+				Limits: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceCPU: resource.MustParse("400m"),
+				},
+			},
+			errorMessage: "Should return ResourceLimitCPU only",
+		},
+		{
+			name: "TestSidecarNoResourceAnnotationPresent",
+			podObjectMeta: &metav1.ObjectMeta{
+				Annotations: map[string]string{},
+			},
+			expected:     nil,
+			errorMessage: "Should return nil",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			whsvr := &WebhookServer{
+				server:          nil,
+				namespaceClient: nil,
+			}
+
+			r, err := whsvr.getResourceRequirements(tc.podObjectMeta)
+			assert.Equal(t, tc.expected, r, tc.errorMessage)
+			assert.Nil(t, err, "Should succeed")
 		})
 	}
 }
