@@ -1,0 +1,18 @@
+version: 2
+updates:
+    - package-ecosystem: gomod
+      directory: /
+      labels:
+        - dependencies
+        - actions
+        - Skip Changelog
+      schedule:
+        interval: weekly
+        day: sunday
+    - package-ecosystem: github-actions
+      directory: /
+      labels:
+        - actions
+      schedule:
+        interval: weekly
+        day: sunday
