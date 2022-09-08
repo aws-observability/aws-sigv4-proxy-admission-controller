@@ -1,6 +1,12 @@
 name: CD
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 
 jobs:
   build:
@@ -18,5 +24,6 @@ jobs:
         run: |
           go get -d -v
           go build -v .
+
       - name: Run tests
         run: go test -v ./...
