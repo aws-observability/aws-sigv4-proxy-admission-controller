@@ -30,6 +30,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"strconv"
 )
 
 const (
@@ -39,10 +40,12 @@ const (
 	signingProxyWebhookAnnotationRegionKey  = "sidecar.aws.signing-proxy/region"
 	signingProxyWebhookAnnotationRoleArnKey = "sidecar.aws.signing-proxy/role-arn"
 	signingProxyWebhookAnnotationStatusKey  = "sidecar.aws.signing-proxy/status"
+	signingProxyWebhookAnnotationPayloadKey = "sidecar.aws.signing-proxy/unsigned-payload"
 	signingProxyWebhookLabelHostKey         = "sidecar-host"
 	signingProxyWebhookLabelNameKey         = "sidecar-name"
 	signingProxyWebhookLabelRegionKey       = "sidecar-region"
 	signingProxyWebhookLabelRoleArnKey      = "sidecar-role-arn"
+	signingProxyWebhookLabelPayloadKey 	= "sidecar-payload-arn"
 )
 
 var (
@@ -154,9 +157,14 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 
 	var patchOperations []PatchOperation
 
-	host, name, region := whsvr.getUpstreamEndpointParameters(nsLabels, &pod.ObjectMeta)
+	host, name, region, unsignedPayload := whsvr.getUpstreamEndpointParameters(nsLabels, &pod.ObjectMeta)
 
 	sidecarArgs := []string{"--name", name, "--region", region, "--host", host, "--port", ":8005"}
+	s, _ := strconv.ParseBool(unsignedPayload)
+	
+	if (s) {
+		sidecarArgs = []string{"--name", name, "--region", region, "--host", host, "--port", ":8005", "--unsigned-payload"}
+	}
 
 	roleArn := whsvr.getRoleArn(nsLabels, &pod.ObjectMeta)
 
@@ -260,7 +268,7 @@ func (whsvr *WebhookServer) shouldMutate(nsLabels map[string]string, podMetadata
 	return annotationInject
 }
 
-func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) (string, string, string) {
+func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) (string, string, string, string) {
 	annotations := podMetadata.GetAnnotations()
 
 	if annotations == nil {
@@ -277,13 +285,13 @@ func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]st
 	}
 
 	if labelInject {
-		return extractParameters(host, nsLabels[signingProxyWebhookLabelNameKey], nsLabels[signingProxyWebhookLabelRegionKey])
+		return extractParameters(host, nsLabels[signingProxyWebhookLabelNameKey], nsLabels[signingProxyWebhookLabelRegionKey], nsLabels[signingProxyWebhookLabelPayloadKey])
 	}
 
-	return extractParameters(host, annotations[signingProxyWebhookAnnotationNameKey], annotations[signingProxyWebhookAnnotationRegionKey])
+	return extractParameters(host, annotations[signingProxyWebhookAnnotationNameKey], annotations[signingProxyWebhookAnnotationRegionKey], annotations[signingProxyWebhookAnnotationPayloadKey])
 }
 
-func extractParameters(host string, name string, region string) (string, string, string) {
+func extractParameters(host string, name string, region string, unsignedPayload string) (string, string, string, string) {
 	if strings.TrimSpace(name) == "" {
 		name = host[:strings.IndexByte(host, '.')]
 	}
@@ -294,7 +302,7 @@ func extractParameters(host string, name string, region string) (string, string,
 		region = hostModified[:strings.IndexByte(hostModified, '.')]
 	}
 
-	return host, name, region
+	return host, name, region, unsignedPayload
 }
 
 func (whsvr *WebhookServer) getRoleArn(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) string {
@@ -317,7 +325,8 @@ func (whsvr *WebhookServer) getProxyImage() string {
 	image := os.Getenv("AWS-SIGV4-PROXY-IMAGE")
 
 	if image == "" {
-		image = "public.ecr.aws/aws-observability/aws-sigv4-proxy:latest"
+		//image = "public.ecr.aws/aws-observability/aws-sigv4-proxy:latest"
+		image = "public.ecr.aws/sheetjos/aws-sigv4-proxy:latest"
 	}
 
 	return image
