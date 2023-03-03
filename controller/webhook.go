@@ -325,8 +325,7 @@ func (whsvr *WebhookServer) getProxyImage() string {
 	image := os.Getenv("AWS-SIGV4-PROXY-IMAGE")
 
 	if image == "" {
-		//image = "public.ecr.aws/aws-observability/aws-sigv4-proxy:latest"
-		image = "public.ecr.aws/sheetjos/aws-sigv4-proxy:latest"
+		image = "public.ecr.aws/aws-observability/aws-sigv4-proxy:latest"
 	}
 
 	return image
