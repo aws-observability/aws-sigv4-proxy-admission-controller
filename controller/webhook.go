@@ -20,32 +20,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	corev1Types "k8s.io/client-go/kubernetes/typed/core/v1"
-	"log"
-	"net/http"
-	"os"
-	"strings"
-	"strconv"
 )
 
 const (
-	signingProxyWebhookAnnotationHostKey    	= "sidecar.aws.signing-proxy/host"
-	signingProxyWebhookAnnotationInjectKey  	= "sidecar.aws.signing-proxy/inject"
-	signingProxyWebhookAnnotationNameKey    	= "sidecar.aws.signing-proxy/name"
-	signingProxyWebhookAnnotationRegionKey  	= "sidecar.aws.signing-proxy/region"
-	signingProxyWebhookAnnotationRoleArnKey 	= "sidecar.aws.signing-proxy/role-arn"
-	signingProxyWebhookAnnotationStatusKey  	= "sidecar.aws.signing-proxy/status"
+	signingProxyWebhookAnnotationSchemeKey          = "sidecar.aws.signing-proxy/scheme"
+	signingProxyWebhookAnnotationHostKey            = "sidecar.aws.signing-proxy/host"
+	signingProxyWebhookAnnotationInjectKey          = "sidecar.aws.signing-proxy/inject"
+	signingProxyWebhookAnnotationNameKey            = "sidecar.aws.signing-proxy/name"
+	signingProxyWebhookAnnotationRegionKey          = "sidecar.aws.signing-proxy/region"
+	signingProxyWebhookAnnotationRoleArnKey         = "sidecar.aws.signing-proxy/role-arn"
+	signingProxyWebhookAnnotationStatusKey          = "sidecar.aws.signing-proxy/status"
 	signingProxyWebhookAnnotationUnsignedPayloadKey = "sidecar.aws.signing-proxy/unsigned-payload"
-	signingProxyWebhookLabelHostKey         	= "sidecar-host"
-	signingProxyWebhookLabelNameKey         	= "sidecar-name"
-	signingProxyWebhookLabelRegionKey       	= "sidecar-region"
-	signingProxyWebhookLabelRoleArnKey      	= "sidecar-role-arn"
-	signingProxyWebhookLabelUnsignedPayloadKey 	= "sidecar-unsigned-payload"
+	signingProxyWebhookLabelSchemeKey               = "sidecar-scheme"
+	signingProxyWebhookLabelHostKey                 = "sidecar-host"
+	signingProxyWebhookLabelNameKey                 = "sidecar-name"
+	signingProxyWebhookLabelRegionKey               = "sidecar-region"
+	signingProxyWebhookLabelRoleArnKey              = "sidecar-role-arn"
+	signingProxyWebhookLabelUnsignedPayloadKey      = "sidecar-unsigned-payload"
 )
 
 var (
@@ -157,13 +160,13 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 
 	var patchOperations []PatchOperation
 
-	host, name, region, unsignedPayload := whsvr.getUpstreamEndpointParameters(nsLabels, &pod.ObjectMeta)
+	host, name, region, unsignedPayload, scheme := whsvr.getUpstreamEndpointParameters(nsLabels, &pod.ObjectMeta)
 
-	sidecarArgs := []string{"--name", name, "--region", region, "--host", host, "--port", ":8005"}
+	sidecarArgs := []string{"--name", name, "--region", region, "--host", host, "--port", ":8005", "--scheme", scheme}
 	s, _ := strconv.ParseBool(unsignedPayload)
-	
-	if (s) {
-		sidecarArgs = []string{"--name", name, "--region", region, "--host", host, "--port", ":8005", "--unsigned-payload"}
+
+	if s {
+		sidecarArgs = []string{"--name", name, "--region", region, "--host", host, "--port", ":8005", "--unsigned-payload", "--scheme", scheme}
 	}
 
 	roleArn := whsvr.getRoleArn(nsLabels, &pod.ObjectMeta)
@@ -268,7 +271,7 @@ func (whsvr *WebhookServer) shouldMutate(nsLabels map[string]string, podMetadata
 	return annotationInject
 }
 
-func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) (string, string, string, string) {
+func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) (string, string, string, string, string) {
 	annotations := podMetadata.GetAnnotations()
 
 	if annotations == nil {
@@ -285,13 +288,14 @@ func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]st
 	}
 
 	if labelInject {
-		return extractParameters(host, nsLabels[signingProxyWebhookLabelNameKey], nsLabels[signingProxyWebhookLabelRegionKey], nsLabels[signingProxyWebhookLabelUnsignedPayloadKey])
+		return extractParameters(host, nsLabels[signingProxyWebhookLabelNameKey], nsLabels[signingProxyWebhookLabelRegionKey], nsLabels[signingProxyWebhookLabelUnsignedPayloadKey], nsLabels[signingProxyWebhookLabelSchemeKey])
 	}
 
-	return extractParameters(host, annotations[signingProxyWebhookAnnotationNameKey], annotations[signingProxyWebhookAnnotationRegionKey], annotations[signingProxyWebhookAnnotationUnsignedPayloadKey])
+	return extractParameters(host, annotations[signingProxyWebhookAnnotationNameKey], annotations[signingProxyWebhookAnnotationRegionKey], annotations[signingProxyWebhookAnnotationUnsignedPayloadKey], annotations[signingProxyWebhookAnnotationSchemeKey])
 }
 
-func extractParameters(host string, name string, region string, unsignedPayload string) (string, string, string, string) {
+func extractParameters(host string, name string, region string, unsignedPayload string, scheme string) (string, string, string, string, string) {
+
 	if strings.TrimSpace(name) == "" {
 		name = host[:strings.IndexByte(host, '.')]
 	}
@@ -302,7 +306,13 @@ func extractParameters(host string, name string, region string, unsignedPayload 
 		region = hostModified[:strings.IndexByte(hostModified, '.')]
 	}
 
-	return host, name, region, unsignedPayload
+	scheme = strings.ToLower(scheme)
+
+	if scheme == "" || (scheme != "http" && scheme != "https") {
+		scheme = "http"
+	}
+
+	return host, name, region, unsignedPayload, scheme
 }
 
 func (whsvr *WebhookServer) getRoleArn(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) string {
