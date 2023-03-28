@@ -195,11 +195,12 @@ func TestWebhookServer_getUpstreamEndpointParameters(t *testing.T) {
 					signingProxyWebhookAnnotationHostKey: "annotation.us-west-2.amazonaws.com",
 					signingProxyWebhookAnnotationNameKey: "annotationName",
 					signingProxyWebhookAnnotationRegionKey: "us-west-2-region",
+					signingProxyWebhookAnnotationUnsignedPayloadKey: "true",
 				},
 			},
 			labels: map[string]string{},
-			expected: []string{"annotation.us-west-2.amazonaws.com", "annotationName", "us-west-2-region"},
-			errorMessages: []string{"Should return host annotation value", "Should return name annotation value", "Should return region annotation value"},
+			expected: []string{"annotation.us-west-2.amazonaws.com", "annotationName", "us-west-2-region", "true"},
+			errorMessages: []string{"Should return host annotation value", "Should return name annotation value", "Should return region annotation value", "Should return payload annotation value"},
 		},
 		{
 			name: "TestSidecarRegionAnnotationNotPresent",
@@ -207,11 +208,12 @@ func TestWebhookServer_getUpstreamEndpointParameters(t *testing.T) {
 				Annotations: map[string]string{
 					signingProxyWebhookAnnotationHostKey: "annotation.us-west-2.amazonaws.com",
 					signingProxyWebhookAnnotationNameKey: "annotationName",
+					signingProxyWebhookAnnotationUnsignedPayloadKey: "true",
 				},
 			},
 			labels: map[string]string{},
-			expected: []string{"annotation.us-west-2.amazonaws.com", "annotationName", "us-west-2"},
-			errorMessages: []string{"Should return host annotation value", "Should return name annotation value", "Should return region from host annotation"},
+			expected: []string{"annotation.us-west-2.amazonaws.com", "annotationName", "us-west-2", "true"},
+			errorMessages: []string{"Should return host annotation value", "Should return name annotation value", "Should return region annotation value", "Should return payload annotation value"},
 		},
 		{
 			name: "TestSidecarNameAnnotationNotPresent",
@@ -219,22 +221,24 @@ func TestWebhookServer_getUpstreamEndpointParameters(t *testing.T) {
 				Annotations: map[string]string{
 					signingProxyWebhookAnnotationHostKey: "annotation.us-west-2.amazonaws.com",
 					signingProxyWebhookAnnotationRegionKey: "us-west-2-region",
+					signingProxyWebhookAnnotationUnsignedPayloadKey: "true",
 				},
 			},
 			labels: map[string]string{},
-			expected: []string{"annotation.us-west-2.amazonaws.com", "annotation", "us-west-2-region"},
-			errorMessages: []string{"Should return host annotation value", "Should return name from host annotation", "Should return region annotation value"},
+			expected: []string{"annotation.us-west-2.amazonaws.com", "annotation", "us-west-2-region", "true"},
+			errorMessages: []string{"Should return host annotation value", "Should return name from host annotation", "Should return region annotation value", "Should return payload annotation value"},
 		},
 		{
 			name: "TestSidecarNameRegionAnnotationsNotPresent",
 			podObjectMeta: &metav1.ObjectMeta{
 				Annotations: map[string]string{
 					signingProxyWebhookAnnotationHostKey: "annotation.us-west-2.amazonaws.com",
+					signingProxyWebhookAnnotationUnsignedPayloadKey: "true",
 				},
 			},
 			labels: map[string]string{},
-			expected: []string{"annotation.us-west-2.amazonaws.com", "annotation", "us-west-2"},
-			errorMessages: []string{"Should return host annotation value", "Should return name from host annotation", "Should return region from host annotation"},
+			expected: []string{"annotation.us-west-2.amazonaws.com", "annotation", "us-west-2", "true"},
+			errorMessages: []string{"Should return host annotation value", "Should return name from host annotation", "Should return region from host annotation", "Should return payload annotation value"},
 		},
 		{
 			name: "TestSidecarAllAnnotationsAndLabelsPresent",
@@ -243,15 +247,18 @@ func TestWebhookServer_getUpstreamEndpointParameters(t *testing.T) {
 					signingProxyWebhookAnnotationHostKey: "annotation.us-west-2.amazonaws.com",
 					signingProxyWebhookAnnotationNameKey: "annotationName",
 					signingProxyWebhookAnnotationRegionKey: "us-west-2-region",
+					signingProxyWebhookAnnotationUnsignedPayloadKey: "true",
+			
 				},
 			},
 			labels: map[string]string{
 				signingProxyWebhookLabelHostKey: "label.us-east-2.amazonaws.com",
 				signingProxyWebhookLabelNameKey: "labelName",
 				signingProxyWebhookLabelRegionKey: "us-east-2-region",
+				signingProxyWebhookLabelUnsignedPayloadKey: "true",
 			},
-			expected: []string{"annotation.us-west-2.amazonaws.com", "annotationName", "us-west-2-region"},
-			errorMessages: []string{"Should return host annotation value", "Should return name annotation value", "Should return region annotation value"},
+			expected: []string{"annotation.us-west-2.amazonaws.com", "annotationName", "us-west-2-region", "true"},
+			errorMessages: []string{"Should return host annotation value", "Should return name annotation value", "Should return region annotation value", "Should return unsigned payload annotation value"},
 		},
 		{
 			name: "TestSidecarAllLabelsPresent",
@@ -262,9 +269,10 @@ func TestWebhookServer_getUpstreamEndpointParameters(t *testing.T) {
 				signingProxyWebhookLabelHostKey: "label.us-east-2.amazonaws.com",
 				signingProxyWebhookLabelNameKey: "labelName",
 				signingProxyWebhookLabelRegionKey: "us-east-2-region",
+				signingProxyWebhookLabelUnsignedPayloadKey: "true",
 			},
-			expected: []string{"label.us-east-2.amazonaws.com", "labelName", "us-east-2-region"},
-			errorMessages: []string{"Should return host label value", "Should return name label value", "Should return region label value"},
+			expected: []string{"label.us-east-2.amazonaws.com", "labelName", "us-east-2-region", "true"},
+			errorMessages: []string{"Should return host label value", "Should return name label value", "Should return region label value", "Should return unsigned payload annotation value"},
 		},
 		{
 			name: "TestSidecarOnlyHostLabelsPresent",
@@ -273,9 +281,10 @@ func TestWebhookServer_getUpstreamEndpointParameters(t *testing.T) {
 			},
 			labels: map[string]string{
 				signingProxyWebhookLabelHostKey: "label.us-east-2.amazonaws.com",
+				signingProxyWebhookLabelUnsignedPayloadKey: "true",
 			},
-			expected: []string{"label.us-east-2.amazonaws.com", "label", "us-east-2"},
-			errorMessages: []string{"Should return host label value", "Should return name from host label", "Should return region from host label"},
+			expected: []string{"label.us-east-2.amazonaws.com", "label", "us-east-2", "true"},
+			errorMessages: []string{"Should return host label value", "Should return name from host label", "Should return region from host label", "Should return unsigned payload annotation value"},
 		},
 	}
 
@@ -286,10 +295,11 @@ func TestWebhookServer_getUpstreamEndpointParameters(t *testing.T) {
 				namespaceClient: nil,
 			}
 
-			a, b, c := whsvr.getUpstreamEndpointParameters(tc.labels, tc.podObjectMeta)
+			a, b, c, d := whsvr.getUpstreamEndpointParameters(tc.labels, tc.podObjectMeta)
 			assert.Equal(t, tc.expected[0], a, tc.errorMessages[0])
 			assert.Equal(t, tc.expected[1], b, tc.errorMessages[1])
 			assert.Equal(t, tc.expected[2], c, tc.errorMessages[2])
+			assert.Equal(t, tc.expected[3], d, tc.errorMessages[3])
 		})
 	}
 }

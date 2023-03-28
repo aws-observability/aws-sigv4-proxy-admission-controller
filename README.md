@@ -67,6 +67,7 @@ For each row in the chart below, you only need either the annotation or namespac
 | `sidecar.aws.signing-proxy/name: <AWS_SIGV4_PROXY_NAME>` | `sidecar-host=<AWS_SIGV4_PROXY_NAME>` |
 | `sidecar.aws.signing-proxy/region: <AWS_SIGV4_PROXY_REGION>` | `sidecar-host=<AWS_SIGV4_PROXY_REGION>` |
 | `sidecar.aws.signing-proxy/role-arn: <AWS_SIGV4_PROXY_ROLE_ARN>` | `sidecar-role-arn=<AWS_SIGV4_PROXY_ROLE_ARN>` |
+| `sidecar.aws.signing-proxy/unsigned-payload: <AWS_SIGV4_PROXY_UNSIGNED_PAYLOAD>` | `unsigned-payload=<AWS_SIGV4_PROXY_UNSIGNED_PAYLOAD>` |
 
 For more information on the above annotations / namespace labels, please refer to the documentation in the [AWS SIGv4 Proxy](https://github.com/awslabs/aws-sigv4-proxy) repository.
 
@@ -90,6 +91,7 @@ spec:
         sidecar.aws.signing-proxy/name: "aps"
         sidecar.aws.signing-proxy/region: "us-west-2"
         sidecar.aws.signing-proxy/role-arn: "arn:aws:iam::123456789:role/assume-role"
+        sidecar.aws.signing-proxy/unsigned-payload: "false"
       labels:
         app: sleep
     spec:
