@@ -34,18 +34,18 @@ import (
 )
 
 const (
-	signingProxyWebhookAnnotationHostKey    = "sidecar.aws.signing-proxy/host"
-	signingProxyWebhookAnnotationInjectKey  = "sidecar.aws.signing-proxy/inject"
-	signingProxyWebhookAnnotationNameKey    = "sidecar.aws.signing-proxy/name"
-	signingProxyWebhookAnnotationRegionKey  = "sidecar.aws.signing-proxy/region"
-	signingProxyWebhookAnnotationRoleArnKey = "sidecar.aws.signing-proxy/role-arn"
-	signingProxyWebhookAnnotationStatusKey  = "sidecar.aws.signing-proxy/status"
-	signingProxyWebhookAnnotationPayloadKey = "sidecar.aws.signing-proxy/unsigned-payload"
-	signingProxyWebhookLabelHostKey         = "sidecar-host"
-	signingProxyWebhookLabelNameKey         = "sidecar-name"
-	signingProxyWebhookLabelRegionKey       = "sidecar-region"
-	signingProxyWebhookLabelRoleArnKey      = "sidecar-role-arn"
-	signingProxyWebhookLabelPayloadKey 	= "sidecar-payload-arn"
+	signingProxyWebhookAnnotationHostKey    	= "sidecar.aws.signing-proxy/host"
+	signingProxyWebhookAnnotationInjectKey  	= "sidecar.aws.signing-proxy/inject"
+	signingProxyWebhookAnnotationNameKey    	= "sidecar.aws.signing-proxy/name"
+	signingProxyWebhookAnnotationRegionKey  	= "sidecar.aws.signing-proxy/region"
+	signingProxyWebhookAnnotationRoleArnKey 	= "sidecar.aws.signing-proxy/role-arn"
+	signingProxyWebhookAnnotationStatusKey  	= "sidecar.aws.signing-proxy/status"
+	signingProxyWebhookAnnotationUnsignedPayloadKey = "sidecar.aws.signing-proxy/unsigned-payload"
+	signingProxyWebhookLabelHostKey         	= "sidecar-host"
+	signingProxyWebhookLabelNameKey         	= "sidecar-name"
+	signingProxyWebhookLabelRegionKey       	= "sidecar-region"
+	signingProxyWebhookLabelRoleArnKey      	= "sidecar-role-arn"
+	signingProxyWebhookLabelUnsignedPayloadKey 	= "sidecar-unsigned-payload"
 )
 
 var (
@@ -285,10 +285,10 @@ func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]st
 	}
 
 	if labelInject {
-		return extractParameters(host, nsLabels[signingProxyWebhookLabelNameKey], nsLabels[signingProxyWebhookLabelRegionKey], nsLabels[signingProxyWebhookLabelPayloadKey])
+		return extractParameters(host, nsLabels[signingProxyWebhookLabelNameKey], nsLabels[signingProxyWebhookLabelRegionKey], nsLabels[signingProxyWebhookLabelUnsignedPayloadKey])
 	}
 
-	return extractParameters(host, annotations[signingProxyWebhookAnnotationNameKey], annotations[signingProxyWebhookAnnotationRegionKey], annotations[signingProxyWebhookAnnotationPayloadKey])
+	return extractParameters(host, annotations[signingProxyWebhookAnnotationNameKey], annotations[signingProxyWebhookAnnotationRegionKey], annotations[signingProxyWebhookAnnotationUnsignedPayloadKey])
 }
 
 func extractParameters(host string, name string, region string, unsignedPayload string) (string, string, string, string) {
