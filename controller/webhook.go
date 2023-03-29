@@ -309,7 +309,7 @@ func extractParameters(host string, name string, region string, unsignedPayload 
 	scheme = strings.ToLower(scheme)
 
 	if scheme == "" || (scheme != "http" && scheme != "https") {
-		scheme = "http"
+		scheme = "https"
 	}
 
 	return host, name, region, unsignedPayload, scheme
