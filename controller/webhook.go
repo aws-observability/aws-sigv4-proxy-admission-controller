@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	signingProxyWebhookAnnotationSchemeKey          = "sidecar.aws.signing-proxy/scheme"
+	signingProxyWebhookAnnotationSchemeKey          = "sidecar.aws.signing-proxy/upstream-url-scheme"
 	signingProxyWebhookAnnotationHostKey            = "sidecar.aws.signing-proxy/host"
 	signingProxyWebhookAnnotationInjectKey          = "sidecar.aws.signing-proxy/inject"
 	signingProxyWebhookAnnotationNameKey            = "sidecar.aws.signing-proxy/name"
@@ -43,7 +43,7 @@ const (
 	signingProxyWebhookAnnotationRoleArnKey         = "sidecar.aws.signing-proxy/role-arn"
 	signingProxyWebhookAnnotationStatusKey          = "sidecar.aws.signing-proxy/status"
 	signingProxyWebhookAnnotationUnsignedPayloadKey = "sidecar.aws.signing-proxy/unsigned-payload"
-	signingProxyWebhookLabelSchemeKey               = "sidecar-scheme"
+	signingProxyWebhookLabelSchemeKey               = "sidecar-upstream-url-scheme"
 	signingProxyWebhookLabelHostKey                 = "sidecar-host"
 	signingProxyWebhookLabelNameKey                 = "sidecar-name"
 	signingProxyWebhookLabelRegionKey               = "sidecar-region"
@@ -294,7 +294,7 @@ func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]st
 	return extractParameters(host, annotations[signingProxyWebhookAnnotationNameKey], annotations[signingProxyWebhookAnnotationRegionKey], annotations[signingProxyWebhookAnnotationUnsignedPayloadKey], annotations[signingProxyWebhookAnnotationSchemeKey])
 }
 
-func extractParameters(host string, name string, region string, unsignedPayload string, scheme string) (string, string, string, string, string) {
+func extractParameters(host string, name string, region string, unsignedPayload string, upstream-url-scheme string) (string, string, string, string, string) {
 
 	if strings.TrimSpace(name) == "" {
 		name = host[:strings.IndexByte(host, '.')]
@@ -306,13 +306,13 @@ func extractParameters(host string, name string, region string, unsignedPayload 
 		region = hostModified[:strings.IndexByte(hostModified, '.')]
 	}
 
-	scheme = strings.ToLower(scheme)
+	upstream-url-scheme = strings.ToLower(upstream-url-scheme)
 
-	if scheme == "" || (scheme != "http" && scheme != "https") {
-		scheme = "https"
+	if upstream-url-scheme == "" || (upstream-url-scheme != "http" && upstream-url-scheme != "https") {
+		upstream-url-scheme = "https"
 	}
 
-	return host, name, region, unsignedPayload, scheme
+	return host, name, region, unsignedPayload, upstream-url-scheme
 }
 
 func (whsvr *WebhookServer) getRoleArn(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) string {
