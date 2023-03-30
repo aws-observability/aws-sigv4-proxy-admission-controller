@@ -294,7 +294,7 @@ func (whsvr *WebhookServer) getUpstreamEndpointParameters(nsLabels map[string]st
 	return extractParameters(host, annotations[signingProxyWebhookAnnotationNameKey], annotations[signingProxyWebhookAnnotationRegionKey], annotations[signingProxyWebhookAnnotationUnsignedPayloadKey], annotations[signingProxyWebhookAnnotationSchemeKey])
 }
 
-func extractParameters(host string, name string, region string, unsignedPayload string, upstream-url-scheme string) (string, string, string, string, string) {
+func extractParameters(host string, name string, region string, unsignedPayload string, upstreamUrlScheme string) (string, string, string, string, string) {
 
 	if strings.TrimSpace(name) == "" {
 		name = host[:strings.IndexByte(host, '.')]
@@ -306,13 +306,13 @@ func extractParameters(host string, name string, region string, unsignedPayload 
 		region = hostModified[:strings.IndexByte(hostModified, '.')]
 	}
 
-	upstream-url-scheme = strings.ToLower(upstream-url-scheme)
+	upstreamUrlScheme = strings.ToLower(upstreamUrlScheme)
 
-	if upstream-url-scheme == "" || (upstream-url-scheme != "http" && upstream-url-scheme != "https") {
-		upstream-url-scheme = "https"
+	if upstreamUrlScheme == "" || (upstreamUrlScheme != "http" && upstreamUrlScheme != "https") {
+		upstreamUrlScheme = "https"
 	}
 
-	return host, name, region, unsignedPayload, upstream-url-scheme
+	return host, name, region, unsignedPayload, upstreamUrlScheme
 }
 
 func (whsvr *WebhookServer) getRoleArn(nsLabels map[string]string, podMetadata *metav1.ObjectMeta) string {
