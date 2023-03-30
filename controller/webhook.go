@@ -162,11 +162,11 @@ func (whsvr *WebhookServer) mutate(ctx context.Context, admissionReview *v1beta1
 
 	host, name, region, unsignedPayload, scheme := whsvr.getUpstreamEndpointParameters(nsLabels, &pod.ObjectMeta)
 
-	sidecarArgs := []string{"--name", name, "--region", region, "--host", host, "--port", ":8005", "--scheme", scheme}
+	sidecarArgs := []string{"--name", name, "--region", region, "--host", host, "--port", ":8005", "--upstream-url-scheme", scheme}
 	s, _ := strconv.ParseBool(unsignedPayload)
 
 	if s {
-		sidecarArgs = []string{"--name", name, "--region", region, "--host", host, "--port", ":8005", "--unsigned-payload", "--scheme", scheme}
+		sidecarArgs = []string{"--name", name, "--region", region, "--host", host, "--port", ":8005", "--unsigned-payload", "--upstream-url-scheme", scheme}
 	}
 
 	roleArn := whsvr.getRoleArn(nsLabels, &pod.ObjectMeta)
