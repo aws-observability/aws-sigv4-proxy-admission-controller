@@ -68,6 +68,7 @@ For each row in the chart below, you only need either the annotation or namespac
 | `sidecar.aws.signing-proxy/region: <AWS_SIGV4_PROXY_REGION>` | `sidecar-host=<AWS_SIGV4_PROXY_REGION>` |
 | `sidecar.aws.signing-proxy/role-arn: <AWS_SIGV4_PROXY_ROLE_ARN>` | `sidecar-role-arn=<AWS_SIGV4_PROXY_ROLE_ARN>` |
 | `sidecar.aws.signing-proxy/unsigned-payload: <AWS_SIGV4_PROXY_UNSIGNED_PAYLOAD>` | `unsigned-payload=<AWS_SIGV4_PROXY_UNSIGNED_PAYLOAD>` |
+| `sidecar.aws.signing-proxy/upstream-url-scheme: <AWS_SIGV4_PROXY_UPSTREAM_URL_SCHEME>` | `upstream-url-scheme=<AWS_SIGV4_PROXY_UPSTREAM_URL_SCHEME>` |
 
 For more information on the above annotations / namespace labels, please refer to the documentation in the [AWS SIGv4 Proxy](https://github.com/awslabs/aws-sigv4-proxy) repository.
 
