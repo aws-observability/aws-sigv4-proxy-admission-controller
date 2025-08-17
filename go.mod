@@ -1,9 +1,9 @@
 module aws-signingproxy-admissioncontroller
 
-go 1.19
+go 1.21
 
 require (
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	k8s.io/api v0.29.3
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
